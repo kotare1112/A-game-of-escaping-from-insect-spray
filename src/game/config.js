@@ -50,7 +50,7 @@ export const CONFIG = {
   // ---- ゴキブリ（プレイヤー）----
   cockroach: {
     scale: 3.0, // 見た目の倍率（小さすぎて見えないため拡大）
-    maxSpeed: 1.6, // 最高速度 (m/s)
+    maxSpeed: 2.4, // 最高速度 (m/s)
     accelRate: 12.0, // 加減速の滑らかさ（大きいほど素早く追従）
     stunDuration: 0.35, // 衝突後に最高速度が落ちている時間 (秒)
     stunSlow: 0.5, // 衝突直後に最高速度から引く割合（時間とともに戻る）
@@ -58,7 +58,7 @@ export const CONFIG = {
     wallX: 1.45, // 壁の内側の移動限界 |x|
     legSwingAngle: 0.5, // 脚を縦軸回りに振る角度 (rad)
     legLiftAngle: 0.25, // 脚を持ち上げる角度 (rad)
-    legSpeedPerMps: 18, // 速度 1 m/s あたりの歩行位相の進み (rad/s)
+    legSpeedPerMps: 14, // 速度 1 m/s あたりの歩行位相の進み (rad/s)
     antennaSwing: 0.25, // 触角の揺れ幅 (rad)
     antennaSpeed: 2.5, // 触角の揺れの速さ
     flipDuration: 0.35, // 死亡時に裏返る時間 (秒)
@@ -74,9 +74,9 @@ export const CONFIG = {
     lateralOffsets: [-0.9, -0.45, 0.0, 0.45, 0.9], // 人ごとの横オフセット
     followBackMin: 1.6, // ゴキブリの何 m 後方を狙うか（最小）
     followBackMax: 2.2, // 同（最大）
-    startSpeed: 1.0, // 開始時の最高速度 (m/s)
-    maxSpeed: 1.9, // 最大の最高速度 (m/s)
-    speedRampTime: 90, // 最高速度が最大に達するまでの秒数
+    startSpeed: 2.2, // 開始時の最高速度 (m/s)
+    maxSpeed: 3.1, // 最大の最高速度 (m/s)
+    speedRampTime: 60, // 最高速度が最大に達するまでの秒数
     surgeIntervalMin: 4.0, // 「突進」の間隔（最小, 秒）
     surgeIntervalMax: 7.0, // 同（最大）
     surgeDuration: 1.2, // 突進が続く時間 (秒)
@@ -94,7 +94,7 @@ export const CONFIG = {
     turnRate: 6.0, // 体の向きの変わる滑らかさ
     legSwingAngle: 0.44, // 脚の振り (rad、約25°)
     armSwingAngle: 0.35, // 左腕の振り (rad)
-    walkPhasePerMps: 7.0, // 速度 1 m/s あたりの歩行位相の進み (rad/s)
+    walkPhasePerMps: 4.5, // 速度 1 m/s あたりの歩行位相の進み (rad/s)
     bobHeight: 0.03, // 体の上下の大きさ
     sprayArmWobble: 0.08, // 噴射中の右腕の揺れ (rad)
   },
@@ -105,8 +105,8 @@ export const CONFIG = {
     sprayTimeMax: 2.0, // 同（最大）
     restTimeMin: 0.6, // 休む時間（最小）
     restTimeMax: 1.8, // 同（最大）
-    aimSpeedStart: 1.0, // 狙い点がゴキブリを追う速さ：開始時 (m/s)
-    aimSpeedEnd: 1.6, // 同：人間の速度が最大になったとき（速度と同じ割合で上がる）
+    aimSpeedStart: 2.1, // 狙い点がゴキブリを追う速さ：開始時 (m/s)
+    aimSpeedEnd: 3.3, // 同：人間の速度が最大になったとき（速度と同じ割合で上がる）
     aimMaxRange: 2.8, // 狙い点が足元から離れられる水平距離
     hitTimeLimit: 3.0, // 連続で当たり続けるとゲームオーバーになる秒数
     particleMax: 2000, // 粒（ジェット＋霧）の上限数（プール）
