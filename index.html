@@ -38,6 +38,16 @@
     #gauge { height: 12px; margin-top: 2px; border: 2px solid #fff; border-radius: 8px; background: rgba(0,0,0,0.5); overflow: hidden; }
     #gauge-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ffd23f, #ff3b3b); }
 
+    #fly-wrap {
+      position: absolute; left: 50%; bottom: calc(6vh + 154px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+      width: min(30vw, 130px); opacity: 0.2; transition: opacity 0.2s;
+    }
+    #fly-wrap.active { opacity: 0.9; }
+    #fly-gauge { height: 6px; border: 1px solid rgba(255,255,255,0.8); border-radius: 4px; background: rgba(0,0,0,0.4); overflow: hidden; }
+    #fly-fill { height: 100%; width: 100%; background: #8fd8ff; }
+    #fly-wrap.locked #fly-fill { background: #ff8a6b; }
+    @media (pointer: fine) { #fly-wrap { bottom: calc(5vh + env(safe-area-inset-bottom)); } }
+
     #milestone {
       position: fixed; left: 50%; top: 32%; transform: translate(-50%, -50%); opacity: 0; pointer-events: none;
       font-size: clamp(48px, 16vmin, 120px); font-weight: 900; color: #ffd23f; white-space: nowrap;
@@ -97,6 +107,7 @@
       <div id="distance">0.0 m</div>
       <div id="best">ベスト 0.0 m</div>
     </div>
+    <div id="fly-wrap"><div id="fly-gauge"><div id="fly-fill"></div></div></div>
     <div id="gauge-wrap">スプレーを浴びている！<div id="gauge"><div id="gauge-fill"></div></div></div>
   </div>
 
@@ -108,8 +119,8 @@
 
   <div id="overlay-title" class="overlay">
     <h1>殺虫スプレーから逃げろ！</h1>
-    <p>ゴキブリになって、背後から迫る 5 人の人間から逃げ続けよう。<br />スプレーに 3 秒間連続で当たるとゲームオーバー。進んだ距離がスコア。</p>
-    <p>PC：矢印キー / WASD で移動<br />スマホ：画面下のスティックで移動<br />床の小物にぶつかると減速。右上のボタンで音のオン・オフ</p>
+    <p>ゴキブリになって、背後から迫る 5 人の人間から逃げ続けよう。<br />スプレーに 1 秒間連続で当たるとゲームオーバー。進んだ距離がスコア。</p>
+    <p>PC：矢印キー / WASD で移動<br />PC：スペースでジャンプ（長押しで飛ぶ）<br />スマホ：画面下のスティックで移動<br />スマホ：画面をタップでジャンプ（長押しで飛ぶ）<br />床の小物にぶつかると減速。右上のボタンで音のオン・オフ</p>
     <button id="btn-start" type="button">スタート</button>
     <p>Enter / Space でも開始</p>
   </div>

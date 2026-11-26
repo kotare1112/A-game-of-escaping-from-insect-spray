@@ -4,18 +4,56 @@ export class Input {
   constructor() {
     this.keys = new Set();
     this.stick = { x: 0, y: 0 };
-    this.onStart = null; // Enter / Space 用のコールバック
+    this.onStart = null; // Enter / Space 用のコールバック（ゲームを開始したら true を返す）
+    this.jumpPressed = false; // ジャンプボタンを押した瞬間（endFrame() で戻す）
+    this.spaceLock = false; // 開始に使った Space は、一度離すまでジャンプにしない
+    this.touchJumps = new Set(); // ジャンプに使っている指の pointerId
 
     window.addEventListener('keydown', (e) => {
       const k = e.code;
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(k)) e.preventDefault();
-      if (!e.repeat && (k === 'Enter' || k === 'Space') && this.onStart) this.onStart();
+      if (!e.repeat && (k === 'Enter' || k === 'Space') && this.onStart) {
+        const started = this.onStart();
+        if (started && k === 'Space') this.spaceLock = true;
+      }
+      if (k === 'Space' && !e.repeat && !this.spaceLock) this.jumpPressed = true;
       this.keys.add(k);
     });
-    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
-    window.addEventListener('blur', () => this.keys.clear());
+    window.addEventListener('keyup', (e) => {
+      this.keys.delete(e.code);
+      if (e.code === 'Space') this.spaceLock = false;
+    });
+    window.addEventListener('blur', () => {
+      this.keys.clear();
+      this.touchJumps.clear();
+      this.spaceLock = false;
+    });
 
     this._setupStick();
+    this._setupTouchJump();
+  }
+
+  // スティック・ボタン類以外の画面を指で触るとジャンプ。押し続けている間は jumpHeld
+  _setupTouchJump() {
+    window.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse') return;
+      if (e.target && e.target.closest && e.target.closest('#stick, button, .overlay')) return;
+      this.touchJumps.add(e.pointerId);
+      this.jumpPressed = true;
+    });
+    const end = (e) => this.touchJumps.delete(e.pointerId);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+  }
+
+  // ジャンプボタンを押し続けているか
+  get jumpHeld() {
+    return (this.keys.has('Space') && !this.spaceLock) || this.touchJumps.size > 0;
+  }
+
+  // フレームの最後に呼ぶ：「押した瞬間」の情報を捨てる
+  endFrame() {
+    this.jumpPressed = false;
   }
 
   _setupStick() {

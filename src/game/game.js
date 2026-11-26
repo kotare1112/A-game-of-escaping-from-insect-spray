@@ -21,6 +21,7 @@ export class Game {
     this.time = 0;
     this.distance = 0;
     this.hitTimer = 0;
+    this.missTime = 0;
     this.deathTimer = 0;
     this.best = this._loadBest();
     this.audio = new SprayAudio();
@@ -39,7 +40,11 @@ export class Game {
     this.hud.setBest(this.best);
 
     this.input.onStart = () => {
-      if (this.state === 'title' || this.state === 'gameover') this.start();
+      if (this.state === 'title' || this.state === 'gameover') {
+        this.start();
+        return true;
+      }
+      return false;
     };
     this.hud.startBtn.addEventListener('click', () => this.start());
     this.hud.retryBtn.addEventListener('click', () => this.start());
@@ -147,6 +152,7 @@ export class Game {
     this.spray.reset();
     this.distance = 0;
     this.hitTimer = 0;
+    this.missTime = 0;
     this.deathTimer = 0;
     this.hud.setDistance(0);
     this.hud.setHit(0, 0);
@@ -184,8 +190,9 @@ export class Game {
   _updateCamera(dt, snap = false) {
     const C = CONFIG.camera;
     const p = this.cockroach.position;
-    const targetPos = new THREE.Vector3(p.x, C.height, p.z + C.back);
-    const targetLook = new THREE.Vector3(p.x, 0, p.z - C.lookAhead);
+    const hy = p.y * C.heightFollow; // 高さの変化には少しだけ追従
+    const targetPos = new THREE.Vector3(p.x, C.height + hy, p.z + C.back);
+    const targetLook = new THREE.Vector3(p.x, hy, p.z - C.lookAhead);
     const k = snap ? 1 : 1 - Math.exp(-C.followRate * dt);
     if (snap) {
       this.camPos.copy(targetPos);
@@ -243,7 +250,10 @@ export class Game {
     const roach = this.cockroach;
 
     if (playing || dying) {
-      roach.update(dt, playing ? this.input.getVector() : { x: 0, y: 0 });
+      const jump = playing
+        ? { pressed: this.input.jumpPressed, held: this.input.jumpHeld }
+        : { pressed: false, held: false };
+      roach.update(dt, playing ? this.input.getVector() : { x: 0, y: 0 }, jump);
       const OB = CONFIG.obstacles;
       const impact = this.obstacles.resolve(roach.position, roach.velocity, OB.roachRadius);
       if (playing && impact > OB.impactMin) {
@@ -251,7 +261,7 @@ export class Game {
         this.shake = OB.impactShake;
       }
       this.humans.update(dt, roach.position, this.spray.sprayingFlags, this.time, this.camPos);
-      const hit = this.spray.update(dt, roach.position, this.humans.ramp);
+      const hit = this.spray.update(dt, roach.position, this.humans.ramp, roach.velocity);
       this.streaks.update(roach.position, Math.min(1, roach.speed / CONFIG.cockroach.maxSpeed));
       this.audio.update(
         this.spray.sprayingFlags,
@@ -266,7 +276,14 @@ export class Game {
           this.hud.showMilestone(this.nextMilestone);
           this.nextMilestone += CONFIG.speedFx.milestoneStep;
         }
-        this.hitTimer = hit ? this.hitTimer + dt : 0;
+        // 霧の中を走ると濃さが細かく途切れるので、ごく短い途切れ（hitGrace 秒未満）は当たり続けている扱いにする
+        if (hit) {
+          this.hitTimer += dt;
+          this.missTime = 0;
+        } else {
+          this.missTime += dt;
+          if (this.missTime >= CONFIG.spray.hitGrace) this.hitTimer = 0;
+        }
         this.hud.setHit(this.hitTimer, this.time);
         if (this.hitTimer >= CONFIG.spray.hitTimeLimit) this._gameOver();
       } else {
@@ -280,6 +297,8 @@ export class Game {
       this.streaks.update(roach.position, 0);
     }
 
+    this.hud.setFly(roach.flyRatio, !roach.onGround || roach.flyRatio < 1, roach.flyLocked);
+    this.input.endFrame();
     this._updateCamera(dt);
     this.renderer.render(this.scene, this.camera);
   }

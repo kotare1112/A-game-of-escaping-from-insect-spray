@@ -9,6 +9,8 @@ export class Hud {
     this.best = $('best');
     this.gaugeWrap = $('gauge-wrap');
     this.gaugeFill = $('gauge-fill');
+    this.flyWrap = $('fly-wrap');
+    this.flyFill = $('fly-fill');
     this.vignette = $('vignette');
     this.overlays = {
       loading: $('overlay-loading'),
@@ -69,6 +71,13 @@ export class Hud {
 
   setMuted(muted) {
     this.muteBtn.textContent = muted ? '🔇' : '🔊';
+  }
+
+  // 飛行ゲージ：ratio 0〜1、active: 空中または回復中（満タンで地上なら薄くする）、locked: 回復待ち
+  setFly(ratio, active, locked) {
+    this.flyFill.style.width = `${ratio * 100}%`;
+    this.flyWrap.classList.toggle('active', active);
+    this.flyWrap.classList.toggle('locked', locked);
   }
 
   // hitTimer: 連続被弾秒数、time: 点滅用の時刻

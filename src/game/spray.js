@@ -144,8 +144,8 @@ class ParticlePool {
     dx /= dist;
     dy /= dist;
     dz /= dist;
-    // 狙い点の近くまで届く初速（空気抵抗で減速するぶんを見込む）
-    const reach = 1 - Math.exp(-this.drag[i] * this.life[i]);
+    // jetTravelTime 秒で狙い点に届く初速（空気抵抗で減速するぶんを見込む）
+    const reach = 1 - Math.exp(-this.drag[i] * S.jetTravelTime);
     const v0 = THREE.MathUtils.clamp((dist * this.drag[i]) / reach, S.jetSpeedMin, S.jetSpeedMax);
 
     // 円錐状に散らす：中心線に垂直な 2 軸 u, w
@@ -260,12 +260,12 @@ class ParticlePool {
     this.iColor.needsUpdate = true;
   }
 
-  // 床付近の粒の濃さの合計：高さ hitMaxHeight 以下、(x, z) から hitRadius 以内
-  densityAt(x, z) {
+  // 粒の濃さの合計：高さ y ± hitHeightRange、(x, z) から hitRadius 以内
+  densityAt(x, y, z) {
     const r2 = S.hitRadius * S.hitRadius;
     let sum = 0;
     for (let i = 0; i < this.n; i++) {
-      if (!this.alive[i] || this.py[i] > S.hitMaxHeight) continue;
+      if (!this.alive[i] || Math.abs(this.py[i] - y) > S.hitHeightRange) continue;
       const dx = this.px[i] - x;
       const dz = this.pz[i] - z;
       if (dx * dx + dz * dz <= r2) sum += this.density[i];
@@ -350,6 +350,7 @@ class Sprayer {
     this.aim.set(p.x, p.z - 1);
     this.spraying = false;
     this.grace = rand(S.startGraceMin, S.startGraceMax); // 開始直後はすぐ噴射しない
+    this.engaged = false; // 射程内でゴキブリを狙い続けているか
     this.burst = 0; // 連続して噴射している時間
     this.pause = 0; // 持ち直しの休みの残り時間
     this.emitAcc = 0;
@@ -357,7 +358,7 @@ class Sprayer {
     this.human.armAim = 0;
   }
 
-  update(dt, roachPos, aimSpeed, sys) {
+  update(dt, roachPos, aim, sys, target) {
     const hp = this.human.position;
     // ゴキブリが射程内に入ったらすぐ噴射し、射程内にいる間は噴射を続ける。
     // 長く噴射したら一瞬だけ休む（缶の持ち直し）。射程外に出たら止める。
@@ -369,11 +370,14 @@ class Sprayer {
       this.spraying = true;
       this.burst = 0;
       this.emitAcc = 0;
-      // 狙い点はゴキブリの少し手前（人間側）から追い始める
-      const bx = hp.x - roachPos.x;
-      const bz = hp.z - roachPos.z;
-      const bd = Math.hypot(bx, bz) || 1;
-      this.aim.set(roachPos.x + (bx / bd) * S.aimStartBehind, roachPos.z + (bz / bd) * S.aimStartBehind);
+      if (!this.engaged) {
+        // 射程に入ったばかりのときだけ、狙い点をゴキブリの少し手前（人間側）から追い始める。
+        // 缶の持ち直しで一瞬休んだあとは、それまでの狙いを引き継ぐ
+        const bx = hp.x - target.x;
+        const bz = hp.z - target.z;
+        const bd = Math.hypot(bx, bz) || 1;
+        this.aim.set(target.x + (bx / bd) * S.aimStartBehind, target.z + (bz / bd) * S.aimStartBehind);
+      }
     } else if (!want && this.spraying) {
       this.spraying = false;
     }
@@ -385,27 +389,30 @@ class Sprayer {
       }
     }
 
+    this.engaged = this.spraying || (this.engaged && inRange);
+
+    if (this.engaged) {
+      // 狙い点はゴキブリの少し先の位置へ追従する（持ち直しの休み中も追い続ける）。前後は速く、左右は遅く追う
+      // （まっすぐ逃げると当たり、斜めに走ると左右の追従が間に合わず避けられる）
+      const dx = target.x - this.aim.x;
+      const dz = target.z - this.aim.y;
+      const sx = aim.lateral * dt;
+      const sz = aim.forward * dt;
+      this.aim.x += THREE.MathUtils.clamp(dx, -sx, sx);
+      this.aim.y += THREE.MathUtils.clamp(dz, -sz, sz);
+      // 足元から水平 aimMaxRange 以内に制限
+      const ax = this.aim.x - hp.x;
+      const az = this.aim.y - hp.z;
+      const ad = Math.hypot(ax, az);
+      if (ad > S.aimMaxRange) {
+        this.aim.x = hp.x + (ax / ad) * S.aimMaxRange;
+        this.aim.y = hp.z + (az / ad) * S.aimMaxRange;
+      }
+    }
+
     if (!this.spraying) {
       this.human.armAim = 0;
       return;
-    }
-
-    // 狙い点はゴキブリへ一定速度で追従（瞬時には合わない）
-    const dx = roachPos.x - this.aim.x;
-    const dz = roachPos.z - this.aim.y;
-    const d = Math.hypot(dx, dz);
-    const step = Math.min(d, aimSpeed * dt);
-    if (d > 1e-5) {
-      this.aim.x += (dx / d) * step;
-      this.aim.y += (dz / d) * step;
-    }
-    // 足元から水平 aimMaxRange 以内に制限
-    const ax = this.aim.x - hp.x;
-    const az = this.aim.y - hp.z;
-    const ad = Math.hypot(ax, az);
-    if (ad > S.aimMaxRange) {
-      this.aim.x = hp.x + (ax / ad) * S.aimMaxRange;
-      this.aim.y = hp.z + (az / ad) * S.aimMaxRange;
     }
 
     // 右腕を狙い点の方へ（モデルのポーズが指す位置からのピッチ差だけ回す）
@@ -455,12 +462,19 @@ export class SpraySystem {
   }
 
   // 人間の位置更新後に呼ぶ。ramp: 0〜1（人間の速度の上がり具合）。戻り値：ゴキブリが被弾中か
-  update(dt, roachPos, ramp) {
-    const aimSpeed = S.aimSpeedStart + (S.aimSpeedEnd - S.aimSpeedStart) * ramp;
-    for (const s of this.sprayers) s.update(dt, roachPos, aimSpeed, this);
+  update(dt, roachPos, ramp, roachVel) {
+    const aim = {
+      forward: S.aimSpeedStart + (S.aimSpeedEnd - S.aimSpeedStart) * ramp,
+      lateral: S.aimLateralSpeedStart + (S.aimLateralSpeedEnd - S.aimLateralSpeedStart) * ramp,
+    };
+    // 狙うのは「スプレーが床に届くころにゴキブリがいる位置」
+    const lead = S.aimLead;
+    this.target = this.target || new THREE.Vector3();
+    this.target.set(roachPos.x + (roachVel ? roachVel.x * lead : 0), 0, roachPos.z + (roachVel ? roachVel.z * lead : 0));
+    for (const s of this.sprayers) s.update(dt, roachPos, aim, this, this.target);
     this.particles.update(dt);
     this.decals.update(dt);
-    this.density = this.particles.densityAt(roachPos.x, roachPos.z);
+    this.density = this.particles.densityAt(roachPos.x, roachPos.y, roachPos.z);
     return this.density > S.hitThreshold;
   }
 

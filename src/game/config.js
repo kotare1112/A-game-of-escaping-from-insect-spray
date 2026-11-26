@@ -64,6 +64,40 @@ export const CONFIG = {
     flipDuration: 0.35, // 死亡時に裏返る時間 (秒)
     deathTwitchSpeed: 28, // 死亡時の脚のピクピクの速さ
     deathTwitchAngle: 0.35, // 死亡時の脚のピクピクの大きさ (rad)
+    // ジャンプ・飛行
+    jumpHeight: 0.25, // ジャンプの最高到達点 (m)
+    gravity: 8.0, // 重力 (m/s^2)。滞空時間 = 2*sqrt(2*jumpHeight/gravity) = 約 0.5 秒
+    flyHoldDelay: 0.15, // ボタンを押し続けてから飛行に移るまでの時間 (秒)。これより短く離すと通常のジャンプ
+    flyHeight: 0.4, // 飛行中の滑空の高さ (m)
+    flyRiseSpeed: 1.6, // 飛行で上昇するときの最大の速さ (m/s)
+    flyRiseGain: 8.0, // 目標の高さへ近づく強さ（大きいほどキビキビ上がる）
+    flyBobAmount: 0.025, // 滑空中の上下のふわふわの幅 (m)
+    flyBobSpeed: 5.0, // 同：速さ
+    flySpeedMul: 1.1, // 飛行中の水平最高速度の倍率（地上比）
+    flyMaxTime: 1.5, // 飛行ゲージの最大（飛べる秒数）
+    flyRechargeTime: 2.0, // 地上でゲージが空から満タンになるまでの秒数
+    flyResumeRatio: 0.3, // ゲージが空になったあと、再び飛べるようになるまでに回復させる割合 (0〜1)
+    landBounce: 0.12, // 着地時に体が縮んで弾む大きさ（割合）
+    landBounceDecay: 14.0, // 着地の弾みが収まる速さ
+    tuckLegLift: 0.9, // 空中で脚を体に引き寄せる角度：付け根で持ち上げる (rad)
+    tuckLegSwing: 0.35, // 同：脚を前後に畳む角度 (rad)
+    tuckRate: 18.0, // 脚を畳む・戻す滑らかさ
+    shadowOpacity: 0.4, // 空中の丸い影の濃さ（地上すれすれ）
+    shadowRadius: 0.028, // 空中の丸い影の半径（モデル座標。ゴキブリの倍率がかかる）
+    // 羽
+    wingRate: 14.0, // 羽の開閉の滑らかさ（戻るときもこの速さ）
+    wingJumpLift: 0.25, // ジャンプのみのとき前翅を浮かせる角度 (rad)
+    wingOpenYaw: 0.75, // 飛行中に前翅を外側へ開く角度 (rad)
+    wingOpenLift: 0.55, // 飛行中に前翅の後ろ端を持ち上げる角度 (rad)
+    wingOpenRoll: 0.35, // 飛行中に前翅の外側を持ち上げる角度 (rad)
+    hindWingLength: 0.04, // 後翅の長さ（モデル座標 m。前後方向）
+    hindWingWidth: 0.017, // 後翅の幅（外側へ）
+    hindWingColor: 0xc9a77a, // 後翅の色（薄い茶色）
+    hindWingOpacity: 0.55, // 後翅の不透明度
+    hindWingFlapHz: 30, // 後翅の羽ばたきの速さ（1 秒あたりの往復数）
+    hindWingFlapMaxStep: 1.4, // 1 フレームで進める羽ばたきの位相の上限 (rad)。画面のフレームレートで見た目が破綻しないよう頭打ちにする
+    hindWingFlapAngle: 0.7, // 羽ばたきの上下の振れ幅 (rad)
+    hindWingSpread: 0.9, // 後翅を外側へ開く角度 (rad)
   },
 
   // ---- 人間 ----
@@ -101,21 +135,26 @@ export const CONFIG = {
 
   // ---- スプレー ----
   spray: {
-    triggerRange: 2.6, // 人間からゴキブリまでの水平距離がこれ以内になったらすぐ噴射する
-    aimStartBehind: 0.5, // 噴射開始時、狙い点をゴキブリの何 m 手前（人間側）から追い始めるか
+    triggerRange: 3.0, // 人間からゴキブリまでの水平距離がこれ以内になったらすぐ噴射する
+    aimStartBehind: 0.3, // 噴射開始時、狙い点をゴキブリの何 m 手前（人間側）から追い始めるか
     maxBurstTime: 2.5, // 連続で噴射できる最長時間
     burstPauseTime: 0.4, // 長く噴射したあとの一瞬の休み（缶の持ち直し）
     startGraceMin: 1.0, // ゲーム開始直後に噴射しない時間（最小）
     startGraceMax: 1.5, // 同（最大）
-    aimSpeedStart: 2.4, // 狙い点がゴキブリを追う速さ：開始時 (m/s)
-    aimSpeedEnd: 3.6, // 同：人間の速度が最大になったとき（速度と同じ割合で上がる）
-    aimMaxRange: 2.8, // 狙い点が足元から離れられる水平距離
-    hitTimeLimit: 3.0, // 連続で当たり続けるとゲームオーバーになる秒数
+    aimSpeedStart: 3.6, // 狙い点がゴキブリを前後方向に追う速さ：開始時 (m/s)。ゴキブリの最高速度より速く＝まっすぐ逃げると当たる
+    aimSpeedEnd: 4.6, // 同：人間の速度が最大になったとき（速度と同じ割合で上がる）
+    aimLateralSpeedStart: 1.1, // 狙い点が左右方向に追う速さ：開始時 (m/s)。斜めに全力で走ったときの横の速さ（約 1.7 m/s）より遅く＝斜めに動けば避けられる
+    aimLateralSpeedEnd: 1.5, // 同：人間の速度が最大になったとき
+    aimLead: 0.25, // ゴキブリの何秒先の位置を狙うか（スプレーが床に届くまでの時間ぶん先読みする）
+    aimMaxRange: 3.6, // 狙い点が足元から離れられる水平距離
+    hitGrace: 0.25, // 霧から外れてもこの秒数未満なら「連続で当たっている」扱いを続ける
+    hitTimeLimit: 1.0, // 連続で当たり続けるとゲームオーバーになる秒数
     particleMax: 2000, // 粒（ジェット＋霧）の上限数（プール）
     // 噴射ジェット
     jetRate: 350, // 1 人が噴射中に 1 秒に出す粒の数
     jetSpeedMin: 6.0, // 初速 (m/s)
-    jetSpeedMax: 8.0,
+    jetSpeedMax: 18.0,
+    jetTravelTime: 0.25, // ノズルから狙い点の床まで粒が届く時間（秒）。短いほどスプレーが鋭く速い
     jetConeMinDeg: 8, // 広がり角（中心線からの角度）
     jetConeMaxDeg: 12,
     jetDrag: 2.5, // 空気抵抗（速度に exp(-drag*t) をかける）
@@ -139,10 +178,10 @@ export const CONFIG = {
     decalInterval: 0.18, // 噴射中に跡を置く間隔（秒）
     decalLife: 1.5, // 跡が消えるまでの時間
     decalAlpha: 0.35, // 跡の濃さ
-    // 当たり判定（床付近にある霧の濃さの合計で判定）
-    hitMaxHeight: 0.15, // この高さ以下の粒だけ数える (m)
+    // 当たり判定（ゴキブリの高さ付近にある粒の濃さの合計で判定。空中なら空中の粒だけが当たる）
+    hitHeightRange: 0.12, // ゴキブリの現在の高さ ±この範囲にある粒だけ数える (m)
     hitRadius: 0.12, // ゴキブリ中心からこの半径内の粒だけ数える (m)
-    hitThreshold: 3.0, // 濃さの合計がこれを超えたら被弾
+    hitThreshold: 2.0, // 濃さの合計がこれを超えたら被弾
     // 音
     soundVolume: 0.35, // 1 人ぶんの最大音量
     soundMaxDistance: 6.0, // この距離で無音になる (m)
@@ -155,6 +194,7 @@ export const CONFIG = {
     fovRate: 4.0, // 画角が変わる滑らかさ
     height: 3.2, // ゴキブリからの高さ
     back: 2.7, // ゴキブリからの後方距離
+    heightFollow: 0.35, // ゴキブリの高さの変化にカメラが追従する割合（小さいほど揺れない）
     lookAhead: 1.2, // ゴキブリの何 m 前方を見るか
     followRate: 7.0, // 追従の滑らかさ
     rollMaxDeg: 3.0, // 横移動時のロールの最大角

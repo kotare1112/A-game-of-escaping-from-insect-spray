@@ -34,6 +34,7 @@ function mesh(geo, material, x, y, z) {
 // 種類ごとの作り方。build() は新しい Group を返し、shapes はローカルの当たり判定
 const TYPES = {
   slipper: {
+    height: 0.07, // ローカルの高さ（空中のゴキブリがこれより上なら当たらない。実際は scale 倍）
     shapes: [{ b: [0, 0, 0.06, 0.14] }],
     build() {
       const g = new THREE.Group();
@@ -46,6 +47,7 @@ const TYPES = {
     },
   },
   book: {
+    height: 0.105, // ローカルの高さ（空中のゴキブリがこれより上なら当たらない。実際は scale 倍）
     shapes: [{ b: [0, 0, 0.11, 0.15] }],
     build() {
       const g = new THREE.Group();
@@ -69,6 +71,7 @@ const TYPES = {
     },
   },
   mug: {
+    height: 0.09, // ローカルの高さ（空中のゴキブリがこれより上なら当たらない。実際は scale 倍）
     shapes: [{ c: [0, 0, 0.05] }],
     build() {
       const g = new THREE.Group();
@@ -86,6 +89,7 @@ const TYPES = {
     },
   },
   blocks: {
+    height: 0.11, // ローカルの高さ（空中のゴキブリがこれより上なら当たらない。実際は scale 倍）
     shapes: [{ b: [-0.04, 0.02, 0.03, 0.03] }, { b: [0.05, -0.03, 0.03, 0.03] }],
     build() {
       const g = new THREE.Group();
@@ -98,6 +102,7 @@ const TYPES = {
     },
   },
   tissue: {
+    height: 0.07, // ローカルの高さ（空中のゴキブリがこれより上なら当たらない。実際は scale 倍）
     shapes: [{ c: [0, 0, 0.045] }],
     build() {
       const g = new THREE.Group();
@@ -110,6 +115,7 @@ const TYPES = {
     },
   },
   cord: {
+    height: 0.03, // ローカルの高さ（空中のゴキブリがこれより上なら当たらない。実際は scale 倍）
     shapes: [{ c: [0, -0.2, 0.035] }, { c: [0.03, -0.08, 0.035] }, { c: [-0.03, 0.06, 0.035] }, { c: [0, 0.2, 0.035] }],
     build() {
       const g = new THREE.Group();
@@ -197,6 +203,7 @@ export class Obstacles {
     ob.x = x;
     ob.z = z;
     ob.yaw = yaw;
+    ob.height = TYPES[ob.type].height * O.scale;
     ob.group.position.set(x, 0, z);
     ob.group.rotation.y = yaw;
     ob.group.visible = true;
@@ -239,6 +246,7 @@ export class Obstacles {
   resolve(pos, vel, radius) {
     let impact = 0;
     for (const ob of this.active) {
+      if (pos.y > ob.height) continue; // 空中で障害物より高い位置なら当たらない
       if (Math.hypot(ob.x - pos.x, ob.z - pos.z) > 0.9 * O.scale) continue;
       for (const sh of ob.shapes) {
         let nx;
