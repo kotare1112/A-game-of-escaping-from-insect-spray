@@ -349,22 +349,42 @@ class Sprayer {
     const p = this.human.position;
     this.aim.set(p.x, p.z - 1);
     this.spraying = false;
-    // 人ごとにタイミングをずらす
-    this.timer = rand(1.0, 2.5); // 開始直後はすぐ噴射しない
+    this.grace = rand(S.startGraceMin, S.startGraceMax); // 開始直後はすぐ噴射しない
+    this.burst = 0; // 連続して噴射している時間
+    this.pause = 0; // 持ち直しの休みの残り時間
     this.emitAcc = 0;
     this.decalAcc = 0;
     this.human.armAim = 0;
   }
 
   update(dt, roachPos, aimSpeed, sys) {
-    this.timer -= dt;
-    if (this.timer <= 0) {
-      this.spraying = !this.spraying;
-      this.timer = this.spraying ? rand(S.sprayTimeMin, S.sprayTimeMax) : rand(S.restTimeMin, S.restTimeMax);
+    const hp = this.human.position;
+    // ゴキブリが射程内に入ったらすぐ噴射し、射程内にいる間は噴射を続ける。
+    // 長く噴射したら一瞬だけ休む（缶の持ち直し）。射程外に出たら止める。
+    this.grace = Math.max(0, this.grace - dt);
+    this.pause = Math.max(0, this.pause - dt);
+    const inRange = Math.hypot(roachPos.x - hp.x, roachPos.z - hp.z) <= S.triggerRange;
+    const want = inRange && this.grace <= 0 && this.pause <= 0;
+    if (want && !this.spraying) {
+      this.spraying = true;
+      this.burst = 0;
       this.emitAcc = 0;
+      // 狙い点はゴキブリの少し手前（人間側）から追い始める
+      const bx = hp.x - roachPos.x;
+      const bz = hp.z - roachPos.z;
+      const bd = Math.hypot(bx, bz) || 1;
+      this.aim.set(roachPos.x + (bx / bd) * S.aimStartBehind, roachPos.z + (bz / bd) * S.aimStartBehind);
+    } else if (!want && this.spraying) {
+      this.spraying = false;
+    }
+    if (this.spraying) {
+      this.burst += dt;
+      if (this.burst >= S.maxBurstTime) {
+        this.spraying = false;
+        this.pause = S.burstPauseTime;
+      }
     }
 
-    const hp = this.human.position;
     if (!this.spraying) {
       this.human.armAim = 0;
       return;

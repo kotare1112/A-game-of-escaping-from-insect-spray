@@ -74,8 +74,8 @@ export const CONFIG = {
     lateralOffsets: [-0.9, -0.45, 0.0, 0.45, 0.9], // 人ごとの横オフセット
     followBackMin: 1.6, // ゴキブリの何 m 後方を狙うか（最小）
     followBackMax: 2.2, // 同（最大）
-    startSpeed: 2.2, // 開始時の最高速度 (m/s)
-    maxSpeed: 3.1, // 最大の最高速度 (m/s)
+    startSpeed: 2.5, // 開始時の最高速度 (m/s)
+    maxSpeed: 3.4, // 最大の最高速度 (m/s)
     speedRampTime: 60, // 最高速度が最大に達するまでの秒数
     surgeIntervalMin: 4.0, // 「突進」の間隔（最小, 秒）
     surgeIntervalMax: 7.0, // 同（最大）
@@ -101,12 +101,14 @@ export const CONFIG = {
 
   // ---- スプレー ----
   spray: {
-    sprayTimeMin: 1.0, // 噴射する時間（最小）
-    sprayTimeMax: 2.0, // 同（最大）
-    restTimeMin: 0.6, // 休む時間（最小）
-    restTimeMax: 1.8, // 同（最大）
-    aimSpeedStart: 2.1, // 狙い点がゴキブリを追う速さ：開始時 (m/s)
-    aimSpeedEnd: 3.3, // 同：人間の速度が最大になったとき（速度と同じ割合で上がる）
+    triggerRange: 2.6, // 人間からゴキブリまでの水平距離がこれ以内になったらすぐ噴射する
+    aimStartBehind: 0.5, // 噴射開始時、狙い点をゴキブリの何 m 手前（人間側）から追い始めるか
+    maxBurstTime: 2.5, // 連続で噴射できる最長時間
+    burstPauseTime: 0.4, // 長く噴射したあとの一瞬の休み（缶の持ち直し）
+    startGraceMin: 1.0, // ゲーム開始直後に噴射しない時間（最小）
+    startGraceMax: 1.5, // 同（最大）
+    aimSpeedStart: 2.4, // 狙い点がゴキブリを追う速さ：開始時 (m/s)
+    aimSpeedEnd: 3.6, // 同：人間の速度が最大になったとき（速度と同じ割合で上がる）
     aimMaxRange: 2.8, // 狙い点が足元から離れられる水平距離
     hitTimeLimit: 3.0, // 連続で当たり続けるとゲームオーバーになる秒数
     particleMax: 2000, // 粒（ジェット＋霧）の上限数（プール）
