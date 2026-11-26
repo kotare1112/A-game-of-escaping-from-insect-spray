@@ -81,7 +81,12 @@
     .overlay {
       position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
       gap: 14px; padding: 20px; text-align: center; background: rgba(10, 10, 16, 0.72);
+      overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain;
     }
+    /* 内容が画面より長いときはスクロールさせる（中央寄せのまま上が切れないように auto マージンを使う） */
+    .overlay > :first-child { margin-top: auto; }
+    .overlay > :last-child { margin-bottom: auto; }
+    .overlay > * { flex-shrink: 0; }
     .overlay.show { display: flex; }
     .overlay h1 { margin: 0; font-size: clamp(28px, 8vmin, 56px); text-shadow: 0 3px 10px rgba(0,0,0,0.6); }
     .overlay h2 { margin: 0; font-size: clamp(26px, 7vmin, 46px); color: #ff6b6b; }
@@ -94,6 +99,34 @@
       touch-action: manipulation; -webkit-user-select: none; user-select: none;
     }
     .overlay button:active { transform: scale(0.96); }
+    .overlay button:disabled { opacity: 0.5; cursor: default; }
+
+    .ranking { width: min(100%, 360px); }
+    .ranking h3 { margin: 0 0 6px; font-size: clamp(16px, 3.8vmin, 20px); color: #ffd23f; }
+    .ranking .rank-note { font-size: 12px; opacity: 0.7; font-weight: 400; }
+    .ranking ol { list-style: none; margin: 0; padding: 0; text-align: left; }
+    .ranking li {
+      display: flex; gap: 8px; align-items: baseline; padding: 3px 8px; border-radius: 6px;
+      font-size: clamp(13px, 3.2vmin, 16px); background: rgba(255,255,255,0.06); margin-bottom: 2px;
+    }
+    .ranking li.me { background: rgba(255,210,63,0.28); font-weight: 800; }
+    .ranking .r-pos { width: 2em; text-align: right; opacity: 0.8; flex: none; }
+    .ranking .r-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ranking .r-dist { flex: none; font-variant-numeric: tabular-nums; }
+    .ranking .rank-msg { font-size: 14px; opacity: 0.85; padding: 6px 0; }
+
+    #rank-form { display: none; flex-direction: column; align-items: center; gap: 8px; width: min(100%, 360px); }
+    #rank-form.show { display: flex; }
+    #rank-form .row { display: flex; gap: 8px; width: 100%; justify-content: center; }
+    #rank-name {
+      font: inherit; font-size: 16px; /* 16px 未満だと iOS で入力時に拡大される */
+      min-width: 0; flex: 1; padding: 10px 12px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.5);
+      background: rgba(0,0,0,0.5); color: #fff; -webkit-user-select: text; user-select: text; touch-action: manipulation;
+    }
+    #rank-form button { font-size: 16px; padding: 10px 22px; }
+    #rank-skip { background: #4a4858; }
+    #rank-status { font-size: 14px; min-height: 1.4em; }
+    #rank-status.err { color: #ff8a8a; }
     #overlay-loading { background: #1b1a22; }
 
     #stick {
@@ -135,6 +168,7 @@
     <p>PC：矢印キー / WASD で移動<br />PC：スペースでジャンプ（長押しで飛ぶ）<br />スマホ：画面下のスティックで移動<br />スマホ：画面をタップでジャンプ（長押しで飛ぶ）<br />床の小物にぶつかると減速。右上のボタンで音のオン・オフ</p>
     <button id="btn-start" type="button">スタート</button>
     <p>Enter / Space でも開始</p>
+    <div class="ranking" id="rank-title"></div>
   </div>
 
   <div id="overlay-gameover" class="overlay">
@@ -142,6 +176,15 @@
     <p class="big" id="go-distance">0.0 m</p>
     <p class="newrec" id="go-newrec">新記録！</p>
     <p id="go-best">ベスト 0.0 m</p>
+    <form id="rank-form" autocomplete="off">
+      <div class="row">
+        <input id="rank-name" type="text" maxlength="12" placeholder="名前（12 文字まで）" aria-label="名前" enterkeyhint="send" />
+        <button id="rank-submit" type="submit">登録</button>
+      </div>
+      <button id="rank-skip" type="button">登録しない</button>
+    </form>
+    <p id="rank-status"></p>
+    <div class="ranking" id="rank-gameover"></div>
     <button id="btn-retry" type="button">もう一度</button>
     <p>Enter / Space でも再開</p>
   </div>

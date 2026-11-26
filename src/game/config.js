@@ -282,4 +282,15 @@ export const CONFIG = {
   maxDelta: 0.05, // 1 フレームの時間の上限（タブ復帰時の暴走防止）
   gameOverDelay: 1.4, // 死亡してからゲームオーバー画面を出すまでの秒数
   storageKey: 'insect-spray-best',
+
+  // ---- ランキング ----
+  ranking: {
+    size: 10, // 画面に出す件数
+    fetchLimit: 100, // サーバーから取る件数（同じ名前をまとめる前）
+    nameMaxLength: 12, // 名前の最大文字数
+    timeoutMs: 8000, // 通信のタイムアウト (ms)
+    localKey: 'insect-spray-ranking', // 「この端末だけ」モードの記録の保存先
+    localKeep: 100, // 端末に残す記録の最大件数
+    nameKey: 'insect-spray-name', // 前回入力した名前の保存先
+  },
 };

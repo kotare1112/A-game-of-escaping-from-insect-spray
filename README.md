@@ -2,7 +2,7 @@
 
 殺虫スプレーを噴射してくる人間たちから、ゴキブリになって逃げ続ける 3D ゲーム。
 
-> 開発中です。ランキングはまだ実装されていません。
+> 開発中です。
 
 ## ゲーム内容
 
@@ -51,6 +51,7 @@ npm run preview  # build 結果の確認
 | カメラ・画角・ロール・揺れ | `camera` |
 | 速度演出（筋・「50 m!」） | `speedFx` |
 | スピードアップアイテム（見た目・配置間隔・取得範囲・効果時間・倍率・残像・音） | `boost`（`scale` / `intervalMin` / `intervalMax` / `pickupRadius` / `duration` / `speedMul` / `fovBonus` / `trail*` / `chime*`） |
+| ランキング（件数・名前の長さ・タイムアウト・保存キー） | `ranking` |
 
 開発サーバー（`npm run dev`）では、ブラウザのコンソールから `__game`（ゲーム本体）と `__CONFIG`（調整値）を触れます。
 
@@ -71,17 +72,33 @@ npm run preview  # build 結果の確認
 | src/game/audio.js | スプレーの音・アイテム取得音（Web Audio）とミュート |
 | src/game/speedfx.js | 速く走るときに床を流れる筋（スピードアップ中は強まる） |
 | src/game/boost.js | スピードアップアイテム（光る角砂糖。プール化して部屋の再利用に合わせて置く・取得判定・弾ける演出）と、効果中の残像 |
-| src/game/hud.js | HUD・各種画面の表示切り替え・「50 m!」「スピードアップ！」表示・スピードアップのゲージ・ミュートボタン |
+| src/game/ranking.js | ランキングの保存・取得（Supabase / localStorage の切り替え・同名の最高記録だけ残して上位 N 件にする） |
+| supabase/schema.sql | ランキング用テーブル・RLS の SQL |
+| .env.example | Supabase 接続情報の書き方 |
+| src/game/hud.js | HUD・各種画面の表示切り替え・ランキング表示・名前登録フォーム・「50 m!」「スピードアップ！」表示・スピードアップのゲージ・ミュートボタン |
 | public/models/ | ゲーム用モデル（.glb） |
 | assets/models/ | Blender の編集用データ（.blend） |
 | tools/blender/ | モデルの書き出しスクリプト |
 
 ## ランキング
 
-- 進んだ距離で順位を決める
-- 新記録を出したときに、名前を入力して登録する
-- ログインは不要
-- どの端末・どのサーバーから遊んでも同じランキングを共有する（外部のデータベースに保存。候補は Supabase）
+- 進んだ距離（m）で順位を決める。タイトル画面とゲームオーバー画面に上位 10 件を出す
+- 登録できるのは、**その端末での自己ベストを更新したとき**。ゲームオーバー画面で名前（12 文字まで）を入れて「登録」を押す（「登録しない」も選べる）。前回入れた名前は次回の初期値になる
+- ログインは不要。同じ名前は最高記録だけ表示する（大文字・小文字は区別する）。直前に登録した名前の行は黄色く光る
+- 保存先は 2 通り
+  - Supabase を設定した場合：どの端末から遊んでも同じランキングを共有する（下記の準備が必要）
+  - 設定しない場合：その端末の localStorage だけに記録する（画面に「(この端末のみの記録)」と出る）
+- 通信に失敗したときは「ランキングを読み込めませんでした」と出る（ゲーム自体は遊べる）。登録に失敗したときは、そのままもう一度「登録」を押せる
+
+### Supabase の準備
+
+1. [Supabase](https://supabase.com/) でプロジェクトを作る
+2. 左メニューの SQL Editor を開き、[supabase/schema.sql](supabase/schema.sql) の中身を貼り付けて実行する（`scores` テーブルと、読み取り・追加だけを許可するポリシーができる。更新・削除はできない）
+3. Project Settings の API から、Project URL と anon（publishable）key を確認する
+4. [.env.example](.env.example) を `.env.local` にコピーして、`VITE_SUPABASE_URL` と `VITE_SUPABASE_ANON_KEY` に書く（`.env.local` は git に入らない）
+5. 開発サーバー（`npm run dev`）を再起動する。本番用は `npm run build` の前に同じ環境変数を設定する
+
+anon key はブラウザに公開される前提のキーなので、テーブル側の制限（RLS とチェック制約）で守っている。`service_role` key は絶対に使わないこと。なお、ブラウザから直接書き込むため、不正な記録を完全には防げない（距離は 0〜100000 の範囲だけ検査している）。
 
 ## 技術構成
 
@@ -89,7 +106,7 @@ npm run preview  # build 結果の確認
 |---|---|
 | 3D モデル（ゴキブリ・人間） | Blender（Claude Code から Blender MCP 経由で作成）→ glTF（.glb）で書き出し |
 | ゲーム本体 | ブラウザで動く Three.js（素の JavaScript）＋ Vite |
-| ランキングの保存先 | Supabase（予定） |
+| ランキングの保存先 | Supabase（REST API を fetch で直接呼ぶ）。未設定なら localStorage（この端末だけ） |
 
 ## 3D モデル
 

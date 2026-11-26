@@ -9,7 +9,11 @@ export class Input {
     this.spaceLock = false; // 開始に使った Space は、一度離すまでジャンプにしない
     this.touchJumps = new Set(); // ジャンプに使っている指の pointerId
 
+    // 名前入力欄・登録フォームの操作中は、ゲームのキー入力として扱わない
+    const inForm = (e) => !!(e.target && e.target.closest && e.target.closest('#rank-form'));
+
     window.addEventListener('keydown', (e) => {
+      if (inForm(e)) return;
       const k = e.code;
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(k)) e.preventDefault();
       if (!e.repeat && (k === 'Enter' || k === 'Space') && this.onStart) {
@@ -20,6 +24,7 @@ export class Input {
       this.keys.add(k);
     });
     window.addEventListener('keyup', (e) => {
+      if (inForm(e)) return;
       this.keys.delete(e.code);
       if (e.code === 'Space') this.spaceLock = false;
     });

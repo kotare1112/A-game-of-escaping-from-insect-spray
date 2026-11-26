@@ -6,3 +6,8 @@
 
 node_modules
 dist
+
+# 環境変数（Supabase の接続情報など）
+.env
+.env.local
+.env.*.local

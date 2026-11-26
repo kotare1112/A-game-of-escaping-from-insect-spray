@@ -23,6 +23,13 @@ export class Hud {
     this.goDistance = $('go-distance');
     this.goBest = $('go-best');
     this.goNewrec = $('go-newrec');
+    this.rankTitle = $('rank-title');
+    this.rankGameover = $('rank-gameover');
+    this.rankForm = $('rank-form');
+    this.rankName = $('rank-name');
+    this.rankSubmit = $('rank-submit');
+    this.rankSkip = $('rank-skip');
+    this.rankStatus = $('rank-status');
     this.startBtn = $('btn-start');
     this.retryBtn = $('btn-retry');
     this.milestone = $('milestone');
@@ -112,5 +119,70 @@ export class Hud {
     this.goBest.textContent = `ベスト ${best.toFixed(1)} m`;
     this.goNewrec.style.display = isNew ? 'block' : 'none';
     this.showOverlay('gameover');
+  }
+
+  // ランキング表示。state: 'loading' | 'error' | 'ok'、entries: [{name, distance}]、mine: ハイライトする名前
+  // 名前は textContent で入れる（HTML として解釈させない）
+  renderRanking(state, entries = [], mine = '', isLocal = false) {
+    for (const box of [this.rankTitle, this.rankGameover]) {
+      box.replaceChildren();
+      const h = document.createElement('h3');
+      h.textContent = 'ランキング';
+      if (isLocal) {
+        const note = document.createElement('span');
+        note.className = 'rank-note';
+        note.textContent = ' (この端末のみの記録)';
+        h.append(note);
+      }
+      box.append(h);
+      if (state !== 'ok' || entries.length === 0) {
+        const msg = document.createElement('div');
+        msg.className = 'rank-msg';
+        msg.textContent =
+          state === 'loading' ? '読み込み中…'
+          : state === 'error' ? 'ランキングを読み込めませんでした'
+          : 'まだ記録がありません';
+        box.append(msg);
+        continue;
+      }
+      const ol = document.createElement('ol');
+      entries.forEach((e, i) => {
+        const li = document.createElement('li');
+        if (mine && e.name === mine) li.className = 'me';
+        const pos = document.createElement('span');
+        pos.className = 'r-pos';
+        pos.textContent = `${i + 1}`;
+        const name = document.createElement('span');
+        name.className = 'r-name';
+        name.textContent = e.name;
+        const dist = document.createElement('span');
+        dist.className = 'r-dist';
+        dist.textContent = `${e.distance.toFixed(1)} m`;
+        li.append(pos, name, dist);
+        ol.append(li);
+      });
+      box.append(ol);
+    }
+  }
+
+  // 名前登録フォームの表示。show=false で隠す
+  showRankForm(show, name = '') {
+    this.rankForm.classList.toggle('show', show);
+    if (show) {
+      this.rankName.value = name;
+      this.setRankBusy(false);
+      this.setRankStatus('');
+    }
+  }
+
+  setRankBusy(busy) {
+    this.rankSubmit.disabled = busy;
+    this.rankSkip.disabled = busy;
+    this.rankName.disabled = busy;
+  }
+
+  setRankStatus(text, isError = false) {
+    this.rankStatus.textContent = text;
+    this.rankStatus.classList.toggle('err', isError);
   }
 }

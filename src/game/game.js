@@ -11,6 +11,7 @@ import { Obstacles } from './obstacles.js';
 import { SprayAudio } from './audio.js';
 import { SpeedStreaks } from './speedfx.js';
 import { BoostItems, BoostTrail } from './boost.js';
+import { Ranking } from './ranking.js';
 
 export class Game {
   constructor(container) {
@@ -39,6 +40,17 @@ export class Game {
     this._setupRenderer();
     this._setupLights();
     this.hud.setBest(this.best);
+    this.ranking = new Ranking();
+    this.rankMine = ''; // 直前に登録した名前（ランキングでハイライト）
+    this.rankSubmitted = false;
+    this.rankSeq = 0; // 古い取得結果で表示を上書きしないための連番
+    this.hud.rankForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this._submitRank();
+    });
+    this.hud.rankSkip.addEventListener('click', () => {
+      this.hud.showRankForm(false);
+    });
 
     this.input.onStart = () => {
       if (this.state === 'title' || this.state === 'gameover') {
@@ -55,7 +67,64 @@ export class Game {
     for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) {
       window.addEventListener(ev, (e) => e.preventDefault());
     }
-    document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+    // ただしランキングが長いときのオーバーレイのスクロールは許可する
+    document.addEventListener(
+      'touchmove',
+      (e) => {
+        if (!(e.target.closest && e.target.closest('.overlay'))) e.preventDefault();
+      },
+      { passive: false },
+    );
+  }
+
+  _loadName() {
+    try {
+      return localStorage.getItem(CONFIG.ranking.nameKey) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  _saveName(v) {
+    try {
+      localStorage.setItem(CONFIG.ranking.nameKey, v);
+    } catch {
+      /* 保存できなくても続行 */
+    }
+  }
+
+  // ランキングを取得して両方の画面に表示する
+  async _refreshRanking() {
+    const seq = ++this.rankSeq;
+    const local = !this.ranking.isOnline;
+    this.hud.renderRanking('loading', [], this.rankMine, local);
+    const res = await this.ranking.fetchTop();
+    if (seq !== this.rankSeq) return;
+    this.hud.renderRanking(res.ok ? 'ok' : 'error', res.ok ? res.entries : [], this.rankMine, local);
+  }
+
+  async _submitRank() {
+    if (this.rankSubmitted) return;
+    const name = this.hud.rankName.value.trim().slice(0, CONFIG.ranking.nameMaxLength);
+    if (!name) {
+      this.hud.setRankStatus('名前を入力してください', true);
+      return;
+    }
+    this.rankSubmitted = true; // 二重送信を防ぐ
+    this.hud.setRankBusy(true);
+    this.hud.setRankStatus('登録中…');
+    const res = await this.ranking.submit(name, this.best);
+    if (!res.ok) {
+      this.rankSubmitted = false;
+      this.hud.setRankBusy(false);
+      this.hud.setRankStatus('登録できませんでした。もう一度お試しください', true);
+      return;
+    }
+    this._saveName(name);
+    this.rankMine = name;
+    this.hud.showRankForm(false);
+    this.hud.setRankStatus('登録しました');
+    this._refreshRanking();
   }
 
   _loadBest() {
@@ -133,6 +202,7 @@ export class Game {
     this._updateCamera(1, true);
     this.state = 'title';
     this.hud.showOverlay('title');
+    this._refreshRanking();
     this.renderer.setAnimationLoop(() => this._frame());
   }
 
@@ -170,6 +240,9 @@ export class Game {
   start() {
     if (this.state !== 'title' && this.state !== 'gameover') return;
     this.audio.unlock(this.humans.humans.length);
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    this.hud.showRankForm(false);
+    this.hud.setRankStatus('');
     this._resetWorld();
     this._updateCamera(1, true);
     this.state = 'playing';
@@ -194,6 +267,11 @@ export class Game {
     this.hud.setBest(this.best);
     this.hud.showGameOver(this.distance, this.best, isNew);
     this.state = 'gameover';
+    // 登録できるのは、その端末での自己ベストを更新したときだけ
+    this.rankSubmitted = false;
+    this.hud.setRankStatus('');
+    this.hud.showRankForm(isNew, this._loadName());
+    this._refreshRanking();
   }
 
   _updateCamera(dt, snap = false) {
