@@ -10,6 +10,7 @@ import { Hud } from './hud.js';
 import { Obstacles } from './obstacles.js';
 import { SprayAudio } from './audio.js';
 import { SpeedStreaks } from './speedfx.js';
+import { BoostItems, BoostTrail } from './boost.js';
 
 export class Game {
   constructor(container) {
@@ -113,7 +114,13 @@ export class Game {
 
     this.room = new Room(this.scene);
     this.obstacles = new Obstacles(this.scene);
-    this.room.onPlace = (i, z) => this.obstacles.place(i, z);
+    this.boost = new BoostItems(this.scene);
+    this.trail = new BoostTrail(this.scene);
+    this.obstacles.keepClear = (x, z) => this.boost.isNear(x, z);
+    this.room.onPlace = (i, z) => {
+      this.obstacles.place(i, z);
+      this.boost.place(i, z, this.obstacles);
+    };
     this.streaks = new SpeedStreaks(this.scene);
     this.cockroach = new Cockroach(roachGltf);
     this.scene.add(this.cockroach.group);
@@ -141,6 +148,8 @@ export class Game {
 
   _resetWorld() {
     this.obstacles.reset();
+    this.boost.reset(); // room.reset より先に（置き直しで最初の位置を使う）
+    this.trail.reset();
     this.room.reset();
     this.streaks.reset();
     this.shake = 0;
@@ -206,7 +215,8 @@ export class Game {
     const roach = this.cockroach;
     const ratio = Math.min(1, roach.speed / CONFIG.cockroach.maxSpeed);
     const fk = snap ? 1 : 1 - Math.exp(-C.fovRate * dt);
-    this.fovCur += (C.fov + (C.fovMax - C.fov) * ratio - this.fovCur) * fk;
+    const fovTarget = C.fov + (C.fovMax - C.fov) * ratio + CONFIG.boost.fovBonus * roach.boostLevel;
+    this.fovCur += (fovTarget - this.fovCur) * fk;
     if (Math.abs(this.camera.fov - this.fovCur) > 0.01) {
       this.camera.fov = this.fovCur;
       this.camera.updateProjectionMatrix();
@@ -262,7 +272,13 @@ export class Game {
       }
       this.humans.update(dt, roach.position, this.spray.sprayingFlags, this.time, this.camPos);
       const hit = this.spray.update(dt, roach.position, this.humans.ramp, roach.velocity);
-      this.streaks.update(roach.position, Math.min(1, roach.speed / CONFIG.cockroach.maxSpeed));
+      this.streaks.update(roach.position, Math.min(1, roach.speed / CONFIG.cockroach.maxSpeed), roach.boostLevel);
+      if (this.boost.update(dt, this.time, roach.position, roach.y, playing)) {
+        roach.activateBoost();
+        this.audio.playChime();
+        this.hud.showPopup('スピードアップ！', true);
+      }
+      this.trail.update(this.time, roach.position, roach.yaw, roach.boostLevel, roach.speed / CONFIG.cockroach.maxSpeed);
       this.audio.update(
         this.spray.sprayingFlags,
         this.humans.humans.map((h) => Math.hypot(h.position.x - roach.position.x, h.position.z - roach.position.z)),
@@ -295,9 +311,12 @@ export class Game {
       roach.update(dt, { x: 0, y: 0 });
       this.spray.idle(dt);
       this.streaks.update(roach.position, 0);
+      this.boost.update(dt, this.time, roach.position, roach.y, false);
+      this.trail.update(this.time, roach.position, roach.yaw, 0, 0);
     }
 
     this.hud.setFly(roach.flyRatio, !roach.onGround || roach.flyRatio < 1, roach.flyLocked);
+    this.hud.setBoost(roach.boostRatio);
     this.input.endFrame();
     this._updateCamera(dt);
     this.renderer.render(this.scene, this.camera);

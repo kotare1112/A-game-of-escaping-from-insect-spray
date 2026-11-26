@@ -89,6 +89,27 @@ export class SprayAudio {
     });
   }
 
+  // アイテム取得の「キラーン」（サイン波の上昇音）。ミュート中は鳴らさない
+  playChime() {
+    if (!this.ctx || this.muted) return;
+    const B = CONFIG.boost;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    for (const mul of [1, 1.5]) {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(B.chimeFreq * mul, now);
+      osc.frequency.exponentialRampToValueAtTime(B.chimeFreq * mul * 2, now + B.chimeTime);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(B.chimeVolume * (mul === 1 ? 1 : 0.5), now + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now + B.chimeTime + 0.15);
+      osc.connect(g).connect(this.master);
+      osc.start(now);
+      osc.stop(now + B.chimeTime + 0.2);
+    }
+  }
+
   silence() {
     this.update([], []);
   }

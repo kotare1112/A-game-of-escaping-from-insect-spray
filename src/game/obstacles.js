@@ -150,6 +150,7 @@ export class Obstacles {
       }
     }
     this.active = [];
+    this.keepClear = null; // (x, z) => true なら、その位置には置かない（アイテム用）
   }
 
   reset() {
@@ -182,6 +183,7 @@ export class Obstacles {
         const x = rand(-O.corridorX, O.corridorX);
         const z = zCenter + rand(-half, half);
         if (-z < O.safeStartDistance) continue;
+        if (this.keepClear && this.keepClear(x, z)) continue;
         if (this.active.some((o) => Math.hypot(o.x - x, o.z - z) < O.minGap)) continue;
         if (this._spawn(segment, x, z)) break;
       }
@@ -240,6 +242,27 @@ export class Obstacles {
       const offset = Math.floor(Math.random() * ud.tints.length);
       ud.tintMeshes.forEach((mesh, i) => { mesh.material = ud.tints[(offset + i) % ud.tints.length]; });
     }
+  }
+
+  // 点 (x, z) から一番近い障害物の縁までの距離（なければ Infinity）
+  clearance(x, z) {
+    let best = Infinity;
+    for (const ob of this.active) {
+      for (const sh of ob.shapes) {
+        const dx = x - sh.x;
+        const dz = z - sh.z;
+        let d;
+        if (sh.kind === 'c') {
+          d = Math.hypot(dx, dz) - sh.r;
+        } else {
+          const lx = dx * sh.c - dz * sh.s;
+          const lz = dx * sh.s + dz * sh.c;
+          d = Math.hypot(Math.max(0, Math.abs(lx) - sh.hw), Math.max(0, Math.abs(lz) - sh.hd));
+        }
+        best = Math.min(best, d);
+      }
+    }
+    return best;
   }
 
   // ゴキブリ（円）を押し出して、壁沿いに滑らせる。戻り値：ぶつかった速さ (m/s、0 なら衝突なし)

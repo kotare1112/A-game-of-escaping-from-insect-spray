@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CONFIG } from './config.js';
 
 const F = CONFIG.speedFx;
+const BF = CONFIG.boost;
 const rand = (a, b) => a + Math.random() * (b - a);
 
 // 速く走っているときに床すれすれを後ろへ流れる細い筋（ゴキブリ周辺のみ）
@@ -31,16 +32,17 @@ export class SpeedStreaks {
   }
 
   // speedRatio: 0〜1（最高速度に対する今の速さ）
-  update(roachPos, speedRatio) {
+  // boost: スピードアップの強さ 0〜1（筋を濃く長くする）
+  update(roachPos, speedRatio, boost = 0) {
     if (!this.ready) {
       for (let i = 0; i < this.n; i++) this._respawn(i, roachPos, false);
       this.ready = true;
     }
     const k = THREE.MathUtils.clamp((speedRatio - 0.25) / 0.75, 0, 1);
-    this.mat.opacity = F.streakOpacity * k;
+    this.mat.opacity = Math.min(1, F.streakOpacity * k * (1 + (BF.streakOpacityMul - 1) * boost));
     this.lines.visible = k > 0.01;
     if (!this.lines.visible) return;
-    const len = F.streakLenMin + (F.streakLenMax - F.streakLenMin) * k;
+    const len = (F.streakLenMin + (F.streakLenMax - F.streakLenMin) * k) * (1 + (BF.streakLenMul - 1) * boost);
     for (let i = 0; i < this.n; i++) {
       // 後ろへ流れた・横へ外れた筋は前へ出し直す
       if (this.z[i] > roachPos.z + F.streakBehind || Math.abs(this.x[i] - roachPos.x) > F.streakRadiusX * 1.3) {

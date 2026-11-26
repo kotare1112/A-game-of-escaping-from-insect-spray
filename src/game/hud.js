@@ -11,6 +11,8 @@ export class Hud {
     this.gaugeFill = $('gauge-fill');
     this.flyWrap = $('fly-wrap');
     this.flyFill = $('fly-fill');
+    this.boostWrap = $('boost-wrap');
+    this.boostFill = $('boost-fill');
     this.vignette = $('vignette');
     this.overlays = {
       loading: $('overlay-loading'),
@@ -62,8 +64,14 @@ export class Hud {
 
   // 「50 m!」のようなポップアップ（CSS アニメを最初からやり直す）
   showMilestone(m) {
+    this.showPopup(`${m} m!`);
+  }
+
+  // 画面中央のポップアップ。small: 長い文字用に小さめにする
+  showPopup(text, small = false) {
     const el = this.milestone;
-    el.textContent = `${m} m!`;
+    el.textContent = text;
+    el.classList.toggle('sm', small);
     el.classList.remove('go');
     void el.offsetWidth;
     el.classList.add('go');
@@ -78,6 +86,12 @@ export class Hud {
     this.flyFill.style.width = `${ratio * 100}%`;
     this.flyWrap.classList.toggle('active', active);
     this.flyWrap.classList.toggle('locked', locked);
+  }
+
+  // スピードアップの残り時間ゲージ：ratio 0〜1（0 なら非表示）
+  setBoost(ratio) {
+    this.boostWrap.classList.toggle('show', ratio > 0);
+    this.boostFill.style.width = `${ratio * 100}%`;
   }
 
   // hitTimer: 連続被弾秒数、time: 点滅用の時刻

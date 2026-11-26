@@ -220,6 +220,57 @@ export const CONFIG = {
     milestoneStep: 50, // ポップアップを出す距離ごと (m)
   },
 
+  // ---- スピードアップアイテム（光る角砂糖）----
+  boost: {
+    // 見た目
+    cubeSize: 0.04, // 角砂糖の一辺 (m、倍率をかける前)
+    scale: 3.5, // 見た目の倍率（高いカメラから見えるサイズに。当たり判定は pickupRadius で別管理）
+    floatHeight: 0.14, // 浮いている高さの中心 (m)
+    bobAmount: 0.03, // 上下のふわふわの幅 (m)
+    bobSpeed: 2.2, // 同：速さ
+    spinSpeed: 1.0, // ゆっくり回る速さ (rad/s)
+    ringRadius: 0.28, // 床の黄色いリングの外半径 (m)
+    ringWidth: 0.05, // リングの太さ (m)
+    ringOpacity: 0.7, // リングの最大の濃さ（加算合成）
+    ringPulseSpeed: 2.0, // リングの脈動の速さ
+    ringColor: 0xffd23f, // リング・キラキラの色
+    sparkleCount: 4, // 角砂糖の周りのキラキラの数
+    sparkleSize: 0.07, // キラキラの大きさ (m)
+    burstCount: 14, // 取ったときに弾ける粒の数
+    burstSize: 0.08, // 弾ける粒の大きさ (m)
+    burstSpeed: 0.9, // 弾ける粒の初速 (m/s)
+    burstLife: 0.45, // 弾ける粒の寿命 (秒)
+    // 配置
+    poolSize: 4, // アイテムのプール数（毎回 new しない）
+    minDistance: 10, // スタートからこの距離 (m) 以内には置かない
+    intervalMin: 25, // 次のアイテムまでの距離（最小, m）
+    intervalMax: 40, // 同（最大）
+    corridorX: 1.2, // 置く位置の |x| の上限
+    obstacleClear: 0.4, // 障害物の縁からこれ以上離す (m)
+    obstacleKeepRadius: 0.9, // 障害物を置くときにアイテムの中心からこの範囲を避ける (m)。obstacleClear + 障害物の大きさ
+    // 取得
+    pickupRadius: 0.18, // ゴキブリの中心からこの水平距離以内で取得 (m)
+    pickupMaxY: 0.3, // ゴキブリの高さがこれ以下なら取得 (m)。ジャンプ中・低い飛行中でも取れる
+    // 効果
+    duration: 4.0, // 効果の時間 (秒)。効果中に再取得すると残りをこの値にリセット
+    speedMul: 1.6, // 最高速度の倍率
+    accelMul: 1.4, // 加速の強さの倍率
+    fadeOut: 0.5, // 効果の終わりにこの秒数かけて元の速度へ戻す
+    fovBonus: 6, // 効果中に広げる画角 (度)
+    streakOpacityMul: 1.8, // 床の筋の濃さの倍率
+    streakLenMul: 1.6, // 床の筋の長さの倍率
+    // 残像
+    trailCount: 4, // 残像の数
+    trailInterval: 0.05, // 残像どうしの時間差 (秒)
+    trailOpacity: 0.6, // 一番近い残像の濃さ
+    trailColor: 0xffd23f, // 残像の色
+    trailSize: [0.06, 0.025, 0.1], // 残像の大きさ（半幅・半高さ・半長さ, m）
+    // 音（取得時の「キラーン」）
+    chimeVolume: 0.25,
+    chimeFreq: 880, // 開始の周波数 (Hz)。ここから 2 倍まで上昇
+    chimeTime: 0.28, // 長さ (秒)
+  },
+
   // ---- 照明 ----
   light: {
     shadowMapSize: 1024,

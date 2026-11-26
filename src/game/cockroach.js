@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CONFIG } from './config.js';
 
 const C = CONFIG.cockroach;
+const B = CONFIG.boost;
 const LEG_NAMES = ['Leg_L1', 'Leg_L2', 'Leg_L3', 'Leg_R1', 'Leg_R2', 'Leg_R3'];
 // 三脚歩行：L1・R2・L3 と R1・L2・R3 が交互
 const LEG_PHASE = { Leg_L1: 0, Leg_R2: 0, Leg_L3: 0, Leg_R1: Math.PI, Leg_L2: Math.PI, Leg_R3: Math.PI };
@@ -120,6 +121,8 @@ export class Cockroach {
     this.dead = false;
     this.flipT = 0;
     this.stunT = 0;
+    this.boostT = 0; // スピードアップの残り時間 (秒)
+    this.boostLevel = 0; // 効果の強さ 0〜1（終わりの fadeOut 秒で 1→0）
     // ジャンプ・飛行
     this.y = 0;
     this.vy = 0;
@@ -154,6 +157,17 @@ export class Cockroach {
     this.stunT = 1;
   }
 
+  // スピードアップ開始（効果中の再取得は残り時間をリセット）
+  activateBoost() {
+    this.boostT = B.duration;
+    this.boostLevel = 1;
+  }
+
+  // 効果の残り割合 0〜1
+  get boostRatio() {
+    return this.boostT / B.duration;
+  }
+
   die() {
     this.dead = true;
     this.flying = false;
@@ -167,6 +181,9 @@ export class Cockroach {
   // jump: { pressed: 押した瞬間, held: 押し続け中 }
   update(dt, input, jump = { pressed: false, held: false }) {
     this.time += dt;
+    this.boostT = Math.max(0, this.boostT - dt);
+    const bk = Math.min(1, this.boostT / B.fadeOut);
+    this.boostLevel = bk * bk * (3 - 2 * bk);
     if (!this.dead) this._move(dt, input);
     else this.velocity.set(0, 0, 0);
     this._vertical(dt, jump);
@@ -223,10 +240,10 @@ export class Cockroach {
 
   _move(dt, input) {
     this.stunT = Math.max(0, this.stunT - dt / C.stunDuration);
-    const top = C.maxSpeed * (1 - C.stunSlow * this.stunT) * (this.flying ? C.flySpeedMul : 1);
+    const top = C.maxSpeed * (1 - C.stunSlow * this.stunT) * (this.flying ? C.flySpeedMul : 1) * (1 + (B.speedMul - 1) * this.boostLevel);
     const tx = input.x * top;
     const tz = -input.y * top; // 画面の上 = 前方 = -Z
-    const k = Math.min(1, C.accelRate * dt);
+    const k = Math.min(1, C.accelRate * (1 + (B.accelMul - 1) * this.boostLevel) * dt);
     this.velocity.x += (tx - this.velocity.x) * k;
     this.velocity.z += (tz - this.velocity.z) * k;
 

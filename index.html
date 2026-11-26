@@ -48,11 +48,22 @@
     #fly-wrap.locked #fly-fill { background: #ff8a6b; }
     @media (pointer: fine) { #fly-wrap { bottom: calc(5vh + env(safe-area-inset-bottom)); } }
 
+    #boost-wrap {
+      position: absolute; left: 50%; bottom: calc(6vh + 154px + 24px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+      width: min(30vw, 130px); opacity: 0; transition: opacity 0.15s; text-align: center;
+      font-size: 11px; font-weight: 800; color: #ffd23f; text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+    #boost-wrap.show { opacity: 1; }
+    #boost-gauge { height: 8px; margin-top: 2px; border: 1px solid #ffe58a; border-radius: 4px; background: rgba(0,0,0,0.45); overflow: hidden; }
+    #boost-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ffb300, #fff1a0); }
+    @media (pointer: fine) { #boost-wrap { bottom: calc(5vh + 24px + env(safe-area-inset-bottom)); } }
+
     #milestone {
       position: fixed; left: 50%; top: 32%; transform: translate(-50%, -50%); opacity: 0; pointer-events: none;
       font-size: clamp(48px, 16vmin, 120px); font-weight: 900; color: #ffd23f; white-space: nowrap;
       text-shadow: 0 4px 0 rgba(0,0,0,0.5), 0 0 24px rgba(255,210,63,0.7);
     }
+    #milestone.sm { font-size: clamp(32px, 9vmin, 76px); }
     #milestone.go { animation: milestone-pop 1s ease-out forwards; }
     @keyframes milestone-pop {
       0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
@@ -107,6 +118,7 @@
       <div id="distance">0.0 m</div>
       <div id="best">ベスト 0.0 m</div>
     </div>
+    <div id="boost-wrap">スピードアップ<div id="boost-gauge"><div id="boost-fill"></div></div></div>
     <div id="fly-wrap"><div id="fly-gauge"><div id="fly-fill"></div></div></div>
     <div id="gauge-wrap">スプレーを浴びている！<div id="gauge"><div id="gauge-fill"></div></div></div>
   </div>
