@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#1b1a22" />
+  <title>殺虫スプレーから逃げろ！</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden; background: #1b1a22;
+      touch-action: none; overscroll-behavior: none;
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+      color: #fff;
+    }
+    #app { position: fixed; inset: 0; }
+    #app canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+    #vignette {
+      position: fixed; inset: 0; pointer-events: none; opacity: 0;
+      box-shadow: inset 0 0 12vmin 4vmin rgba(255, 0, 0, 0.85);
+    }
+    #hud { position: fixed; inset: 0; pointer-events: none; display: none; }
+    #hud.show { display: block; }
+    #score {
+      position: absolute; left: calc(12px + env(safe-area-inset-left)); top: calc(10px + env(safe-area-inset-top));
+      text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+    }
+    #distance { font-size: clamp(24px, 6vmin, 44px); font-weight: 800; display: inline-block; transform-origin: left center; }
+    #best { font-size: clamp(12px, 2.6vmin, 16px); opacity: 0.85; }
+    #gauge-wrap {
+      position: absolute; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translateX(-50%);
+      width: min(40vw, 260px); opacity: 0; transition: opacity 0.12s; text-align: center;
+      font-size: 12px; text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+    #gauge-wrap.show { opacity: 1; }
+    #gauge { height: 12px; margin-top: 2px; border: 2px solid #fff; border-radius: 8px; background: rgba(0,0,0,0.5); overflow: hidden; }
+    #gauge-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ffd23f, #ff3b3b); }
+
+    #milestone {
+      position: fixed; left: 50%; top: 32%; transform: translate(-50%, -50%); opacity: 0; pointer-events: none;
+      font-size: clamp(48px, 16vmin, 120px); font-weight: 900; color: #ffd23f; white-space: nowrap;
+      text-shadow: 0 4px 0 rgba(0,0,0,0.5), 0 0 24px rgba(255,210,63,0.7);
+    }
+    #milestone.go { animation: milestone-pop 1s ease-out forwards; }
+    @keyframes milestone-pop {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+      15% { opacity: 1; transform: translate(-50%, -50%) scale(1.25); }
+      35% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1); }
+    }
+    #btn-mute {
+      position: fixed; right: calc(12px + env(safe-area-inset-right)); top: calc(10px + env(safe-area-inset-top));
+      width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5);
+      background: rgba(0,0,0,0.4); color: #fff; font-size: 22px; line-height: 1; padding: 0; cursor: pointer;
+      touch-action: manipulation; z-index: 20;
+    }
+
+    .overlay {
+      position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
+      gap: 14px; padding: 20px; text-align: center; background: rgba(10, 10, 16, 0.72);
+    }
+    .overlay.show { display: flex; }
+    .overlay h1 { margin: 0; font-size: clamp(28px, 8vmin, 56px); text-shadow: 0 3px 10px rgba(0,0,0,0.6); }
+    .overlay h2 { margin: 0; font-size: clamp(26px, 7vmin, 46px); color: #ff6b6b; }
+    .overlay p { margin: 0; line-height: 1.6; font-size: clamp(13px, 3.2vmin, 18px); }
+    .overlay .big { font-size: clamp(28px, 8vmin, 52px); font-weight: 800; }
+    .overlay .newrec { color: #ffd23f; font-size: clamp(20px, 5vmin, 32px); font-weight: 800; }
+    .overlay button {
+      font: inherit; font-size: clamp(18px, 4.5vmin, 26px); font-weight: 800; color: #fff;
+      background: #e8453c; border: 0; border-radius: 999px; padding: 12px 40px; cursor: pointer;
+      touch-action: manipulation; -webkit-user-select: none; user-select: none;
+    }
+    .overlay button:active { transform: scale(0.96); }
+    #overlay-loading { background: #1b1a22; }
+
+    #stick {
+      position: fixed; left: 50%; bottom: calc(6vh + env(safe-area-inset-bottom)); transform: translateX(-50%);
+      width: 140px; height: 140px; border-radius: 50%; display: none;
+      background: rgba(255,255,255,0.14); border: 2px solid rgba(255,255,255,0.45);
+      touch-action: none;
+    }
+    #stick-knob {
+      position: absolute; left: 50%; top: 50%; width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%;
+      background: rgba(255,255,255,0.55); pointer-events: none;
+    }
+    @media (pointer: coarse) { #stick.show { display: block; } }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="vignette"></div>
+
+  <div id="hud">
+    <div id="score">
+      <div id="distance">0.0 m</div>
+      <div id="best">ベスト 0.0 m</div>
+    </div>
+    <div id="gauge-wrap">スプレーを浴びている！<div id="gauge"><div id="gauge-fill"></div></div></div>
+  </div>
+
+  <div id="milestone"></div>
+
+  <div id="stick"><div id="stick-knob"></div></div>
+
+  <div id="overlay-loading" class="overlay show"><p class="big">読み込み中…</p></div>
+
+  <div id="overlay-title" class="overlay">
+    <h1>殺虫スプレーから逃げろ！</h1>
+    <p>ゴキブリになって、背後から迫る 5 人の人間から逃げ続けよう。<br />スプレーに 3 秒間連続で当たるとゲームオーバー。進んだ距離がスコア。</p>
+    <p>PC：矢印キー / WASD で移動<br />スマホ：画面下のスティックで移動<br />床の小物にぶつかると減速。右上のボタンで音のオン・オフ</p>
+    <button id="btn-start" type="button">スタート</button>
+    <p>Enter / Space でも開始</p>
+  </div>
+
+  <div id="overlay-gameover" class="overlay">
+    <h2>ゲームオーバー</h2>
+    <p class="big" id="go-distance">0.0 m</p>
+    <p class="newrec" id="go-newrec">新記録！</p>
+    <p id="go-best">ベスト 0.0 m</p>
+    <button id="btn-retry" type="button">もう一度</button>
+    <p>Enter / Space でも再開</p>
+  </div>
+
+  <button id="btn-mute" type="button" tabindex="-1" aria-label="音のオン・オフ">🔊</button>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

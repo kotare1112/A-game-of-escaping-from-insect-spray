@@ -1,0 +1,8 @@
+# Blender の自動バックアップ
+*.blend1
+*.blend2
+
+.DS_Store
+
+node_modules
+dist
