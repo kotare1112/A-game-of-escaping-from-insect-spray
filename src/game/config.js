@@ -33,10 +33,12 @@ export const CONFIG = {
 
   // ---- 床の障害物（通路に置く小物。当たり判定はゴキブリのみ）----
   obstacles: {
-    scale: 1.6, // 見た目と当たり判定の倍率（上から見て見分けやすいよう少し大きめ）
+    scale: 2.2, // 見た目と当たり判定の倍率（上から見て見分けやすいよう大きめ）
     safeStartDistance: 6.0, // スタート地点からこの距離（m）までは置かない
     corridorX: 1.2, // 置く位置の |x| の上限（通路は -1.3〜+1.3）
-    minGap: 1.1, // 障害物の中心同士の最低距離（ゴキブリ 2 匹分以上の隙間を残す）
+    minGap: 1.3, // 障害物の中心同士の最低距離（scale が大きいぶん広げ、ゴキブリが通れる隙間を残す）
+    // 種類ごとの出現開始距離 (m)。書いていない種類は 0 m から
+    minDistance: { slipper: 0, book: 0, mug: 0, blocks: 0, tissue: 0, cord: 0, box: 10 },
     perSegmentStart: 1.0, // 1 セグメントあたりの個数（スタート付近）
     perSegmentEnd: 4.0, // 同（densityDistance に達したとき）
     densityDistance: 100, // 密度が最大になる距離 (m)
@@ -45,6 +47,67 @@ export const CONFIG = {
     impactMin: 0.5, // これ以上の速さで正面からぶつかると「衝突」扱い (m/s)
     impactKeepVelocity: 0.35, // 衝突時に残す速度の割合（小さいほど大きく減速）
     impactShake: 0.035, // 衝突時のカメラの揺れ (m)
+  },
+
+  // ---- 動く障害物・空中の障害物（お掃除ロボット・ボール・クモ・ハチ・紙飛行機）----
+  hazards: {
+    safeStartDistance: 12, // スタートからこの距離 (m) までは出さない
+    perSegmentEnd: 2, // 1 セグメントあたりの最大数（出現数は 0 から densityDistance まで増える）
+    densityDistance: 150, // 出現数が最大になる距離 (m)
+    poolSize: 3, // 種類ごとのプール数（毎回 new しない）
+    minGap: 1.0, // 出現位置どうしの最低距離 (m)
+    edgeX: 1.3, // 床を動くもの・空中のものが動ける |x| の上限（折り返し位置）
+    obstacleClear: 0.35, // 床を動くものの出現位置は、静的障害物の縁からこれ以上離す (m)
+    hitCooldown: 0.5, // 同じ相手に衝突扱いを繰り返さない時間 (秒)。押し出しは常に行う
+    roachBodyY: 0.03, // 空中の障害物との判定に使う、ゴキブリの体の中心の高さ（足元からの m）
+    shadowOpacity: 0.35, // 空中のものが床に落とす丸い影の濃さ（床すれすれのとき）
+    shadowFadeHeight: 0.8, // 影がいちばん薄く・小さくなる高さ (m)
+    // お掃除ロボット（床。円で当たる）
+    robot: {
+      minDistance: 20, chance: 0.6, // 出現開始距離 (m)、出現の確率（スロットごと）
+      radius: 0.17, height: 0.09, // 半径・高さ (m)。高さより上の空中なら当たらない
+      speedMin: 0.5, speedMax: 0.8, // x 方向の往復の速さ (m/s)
+      snakeAmp: 0.08, snakeFreq: 0.9, // 蛇行の幅 (m) と速さ (rad/s)
+      turnRate: 6.0, // 向きの変わる滑らかさ
+      brushSpin: 14.0, // 下のブラシの回転 (rad/s)
+    },
+    // 転がるボール（床。ジャンプで越えられる）
+    ball: {
+      minDistance: 35, chance: 0.55,
+      radius: 0.11, hitHeight: 0.18, // 半径 (m)、これより高く跳べば当たらない (m)
+      speedMin: 0.8, speedMax: 1.3, // +z 方向（ゴキブリへ向かう）の速さ (m/s)
+      driftX: 0.25, // x 方向の速さのばらつき (m/s)
+      colors: [0xe0453a, 0x3a7ae0, 0xf5f0e0], // 地の色・半球の色・帯の色
+    },
+    // クモ（空中。天井から糸でぶら下がる）
+    spider: {
+      minDistance: 50, chance: 0.5,
+      hitRadius: 0.12, // 3D の当たりの球の半径 (m)
+      minY: 0.05, maxY: 0.7, // 上下する高さの範囲 (m)
+      periodMin: 3, periodMax: 5, // 上下の周期 (秒)
+      swing: 0.06, swingSpeed: 1.3, // 糸の揺れの角度 (rad) と速さ
+      legWiggle: 0.12, legWiggleSpeed: 3.0, // 脚のゆれ (rad) と速さ
+    },
+    // ハチ（空中。8 の字に飛ぶ）
+    bee: {
+      minDistance: 70, chance: 0.5,
+      hitRadius: 0.1,
+      minY: 0.25, maxY: 0.5,
+      rangeX: 0.6, rangeZ: 0.5, // 8 の字の大きさ（x ±, z ±, m）
+      periodMin: 4.0, periodMax: 5.5, // 1 周の時間 (秒)
+      flapSpeed: 70, flapAngle: 0.8, // 羽ばたきの速さ (rad/s) と振れ幅 (rad)
+      flapMaxStep: 1.4, // 1 フレームで進める位相の上限 (rad)
+    },
+    // 紙飛行機（空中。通路を横切る）
+    plane: {
+      minDistance: 90, chance: 0.5,
+      hitRadius: 0.12,
+      minY: 0.3, maxY: 0.45,
+      speedMin: 1.5, speedMax: 2.2, // x 方向の速さ (m/s)
+      wrapX: 1.7, // ここまで行ったら反対側から再登場（壁の裏で見えない位置）
+      bobSpeed: 3.0, // 上下の揺れの速さ (rad/s)
+      size: 1.0, // 見た目の倍率
+    },
   },
 
   // ---- ゴキブリ（プレイヤー）----
@@ -74,6 +137,7 @@ export const CONFIG = {
     flyBobAmount: 0.025, // 滑空中の上下のふわふわの幅 (m)
     flyBobSpeed: 5.0, // 同：速さ
     flySpeedMul: 1.1, // 飛行中の水平最高速度の倍率（地上比）
+    knockDownSpeed: 1.5, // 飛行中・空中で何かに当たったときに落とされる初速 (m/s)。飛行ゲージも空になる
     flyMaxTime: 1.5, // 飛行ゲージの最大（飛べる秒数）
     flyRechargeTime: 2.0, // 地上でゲージが空から満タンになるまでの秒数
     flyResumeRatio: 0.3, // ゲージが空になったあと、再び飛べるようになるまでに回復させる割合 (0〜1)

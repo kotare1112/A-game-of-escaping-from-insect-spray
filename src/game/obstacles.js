@@ -19,6 +19,10 @@ const MATS = {
   coffee: mat(0x3a2414, 0.4),
   block: [0xe04a3a, 0x3a7ae0, 0xf0c63a, 0x4ab04a].map((c) => mat(c, 0.6)),
   tissue: mat(0xf7f7f2, 1.0),
+  cardboard: mat(0xb98b56, 0.95),
+  cardboardFlap: mat(0xc79a62, 0.95),
+  cardboardDark: mat(0x8a6238, 1.0),
+  tape: mat(0xd9c9a0, 0.5),
   cord: mat(0x222226, 0.5),
   plug: mat(0x555560, 0.5),
 };
@@ -114,6 +118,42 @@ const TYPES = {
       return g;
     },
   },
+  box: {
+    height: 0.16, // scale 2.2 で約 0.35 m：ジャンプ（0.25 m）では越えられず、飛行（0.4 m）なら越えられる
+    shapes: [{ b: [0, 0, 0.114, 0.091] }], // scale 後で約 幅 0.5 × 奥行 0.4
+    build() {
+      const g = new THREE.Group();
+      g.add(mesh(new THREE.BoxGeometry(0.228, 0.15, 0.182), MATS.cardboard, 0, 0.075, 0));
+      // 上面：左右のフタ（少し浮かせて折り返しに見せる）と、合わせ目のテープ
+      for (const s of [-1, 1]) {
+        const flap = mesh(new THREE.BoxGeometry(0.106, 0.008, 0.18), MATS.cardboardFlap, s * 0.058, 0.154, 0);
+        flap.rotation.z = -s * 0.04;
+        g.add(flap);
+      }
+      g.add(mesh(new THREE.BoxGeometry(0.014, 0.006, 0.184), MATS.cardboardDark, 0, 0.152, 0));
+      const tape = mesh(new THREE.BoxGeometry(0.045, 0.005, 0.186), MATS.tape, 0, 0.16, 0);
+      tape.castShadow = false;
+      g.add(tape);
+      // 側面：中ほどのテープ線と、下の折り目の線
+      for (const s of [-1, 1]) {
+        const side = mesh(new THREE.BoxGeometry(0.004, 0.02, 0.184), MATS.tape, s * 0.114, 0.12, 0);
+        side.castShadow = false;
+        g.add(side);
+        const crease = mesh(new THREE.BoxGeometry(0.005, 0.004, 0.186), MATS.cardboardDark, s * 0.114, 0.05, 0);
+        crease.castShadow = false;
+        g.add(crease);
+      }
+      for (const s of [-1, 1]) {
+        const front = mesh(new THREE.BoxGeometry(0.23, 0.004, 0.004), MATS.cardboardDark, 0, 0.05, s * 0.091);
+        front.castShadow = false;
+        g.add(front);
+        const tf = mesh(new THREE.BoxGeometry(0.046, 0.15, 0.004), MATS.tape, 0, 0.075, s * 0.0915);
+        tf.castShadow = false;
+        g.add(tf);
+      }
+      return g;
+    },
+  },
   cord: {
     height: 0.03, // ローカルの高さ（空中のゴキブリがこれより上なら当たらない。実際は scale 倍）
     shapes: [{ c: [0, -0.2, 0.035] }, { c: [0.03, -0.08, 0.035] }, { c: [-0.03, 0.06, 0.035] }, { c: [0, 0.2, 0.035] }],
@@ -185,17 +225,18 @@ export class Obstacles {
         if (-z < O.safeStartDistance) continue;
         if (this.keepClear && this.keepClear(x, z)) continue;
         if (this.active.some((o) => Math.hypot(o.x - x, o.z - z) < O.minGap)) continue;
-        if (this._spawn(segment, x, z)) break;
+        if (this._spawn(segment, x, z, dist)) break;
       }
     }
   }
 
-  _spawn(segment, x, z) {
-    // ランダムな種類から取り、空なら他の種類から取る
-    const start = Math.floor(Math.random() * TYPE_NAMES.length);
+  _spawn(segment, x, z, dist) {
+    // 出現開始距離を過ぎた種類から、ランダムな種類を取り、空なら他の種類から取る
+    const names = TYPE_NAMES.filter((n) => dist >= (O.minDistance[n] || 0));
+    const start = Math.floor(Math.random() * names.length);
     let ob = null;
-    for (let k = 0; k < TYPE_NAMES.length && !ob; k++) {
-      ob = this.pool[TYPE_NAMES[(start + k) % TYPE_NAMES.length]].find((o) => !o.active) || null;
+    for (let k = 0; k < names.length && !ob; k++) {
+      ob = this.pool[names[(start + k) % names.length]].find((o) => !o.active) || null;
     }
     if (!ob) return false;
 

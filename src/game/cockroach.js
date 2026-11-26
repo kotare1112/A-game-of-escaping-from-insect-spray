@@ -157,6 +157,15 @@ export class Cockroach {
     this.stunT = 1;
   }
 
+  // 空中で何かに当たったとき：飛行を終わらせて落とす（飛行ゲージは空になり、地上で一定まで回復するまで飛べない）
+  knockDown() {
+    if (this.onGround || this.dead) return;
+    this.flying = false;
+    this.flyGauge = 0;
+    this.flyLocked = true;
+    this.vy = Math.min(this.vy, -C.knockDownSpeed);
+  }
+
   // スピードアップ開始（効果中の再取得は残り時間をリセット）
   activateBoost() {
     this.boostT = B.duration;

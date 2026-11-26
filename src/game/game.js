@@ -8,6 +8,7 @@ import { HumanGroup } from './humans.js';
 import { SpraySystem } from './spray.js';
 import { Hud } from './hud.js';
 import { Obstacles } from './obstacles.js';
+import { Hazards } from './hazards.js';
 import { SprayAudio } from './audio.js';
 import { SpeedStreaks } from './speedfx.js';
 import { BoostItems, BoostTrail } from './boost.js';
@@ -183,12 +184,14 @@ export class Game {
 
     this.room = new Room(this.scene);
     this.obstacles = new Obstacles(this.scene);
+    this.hazards = new Hazards(this.scene);
     this.boost = new BoostItems(this.scene);
     this.trail = new BoostTrail(this.scene);
     this.obstacles.keepClear = (x, z) => this.boost.isNear(x, z);
     this.room.onPlace = (i, z) => {
       this.obstacles.place(i, z);
       this.boost.place(i, z, this.obstacles);
+      this.hazards.place(i, z, this.obstacles);
     };
     this.streaks = new SpeedStreaks(this.scene);
     this.cockroach = new Cockroach(roachGltf);
@@ -218,6 +221,7 @@ export class Game {
 
   _resetWorld() {
     this.obstacles.reset();
+    this.hazards.reset();
     this.boost.reset(); // room.reset より先に（置き直しで最初の位置を使う）
     this.trail.reset();
     this.room.reset();
@@ -345,6 +349,14 @@ export class Game {
       const OB = CONFIG.obstacles;
       const impact = this.obstacles.resolve(roach.position, roach.velocity, OB.roachRadius);
       if (playing && impact > OB.impactMin) {
+        if (roach.flying) roach.knockDown(); // 飛行中に何かに当たったら落ちる
+        roach.stun(OB.impactKeepVelocity);
+        this.shake = OB.impactShake;
+      }
+      // 動く障害物・空中の障害物（死亡中は当たらないが動きは続ける）
+      const hz = this.hazards.update(dt, this.time, roach, playing);
+      if (hz.hit) {
+        if (hz.air || roach.flying) roach.knockDown();
         roach.stun(OB.impactKeepVelocity);
         this.shake = OB.impactShake;
       }
@@ -388,6 +400,7 @@ export class Game {
       // タイトル・ゲームオーバー中も触角や霧を動かす
       roach.update(dt, { x: 0, y: 0 });
       this.spray.idle(dt);
+      this.hazards.update(dt, this.time, roach, false);
       this.streaks.update(roach.position, 0);
       this.boost.update(dt, this.time, roach.position, roach.y, false);
       this.trail.update(this.time, roach.position, roach.yaw, 0, 0);
